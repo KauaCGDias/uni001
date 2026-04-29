@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizz - Segurança da Informação (Revisão de Erros)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 850px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; color: var(--primary-color); }
+
+        .question-block {
+            display: none;
+        }
+
+        .question-block.active {
+            display: block;
+        }
+
+        .options { list-style: none; padding: 0; }
+        .options li { margin-bottom: 10px; }
+        .options label {
+            display: block;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .navigation {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #next-btn { background: var(--secondary-color); color: white; }
+        #submit-btn { background: var(--correct-color); color: white; display: none; }
+
+        /* Estilos da Revisão */
+        #review-section {
+            margin-top: 30px;
+            display: none;
+            border-top: 2px solid #ddd;
+            padding-top: 20px;
+        }
+
+        .error-item {
+            background: #fff5f5;
+            border-left: 5px solid var(--wrong-color);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .error-title { font-weight: bold; color: #c0392b; }
+        .correct-ans { color: var(--correct-color); font-weight: bold; }
+        .user-ans { color: var(--wrong-color); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Quizz Unidade 1</h1>
+    
+    <div id="quiz-area">
+        <div id="questions-container"></div>
+        <div class="navigation">
+            <button id="prev-btn" onclick="changeQuestion(-1)" disabled>Anterior</button>
+            <button id="next-btn" onclick="changeQuestion(1)">Próxima</button>
+            <button id="submit-btn" onclick="finishQuiz()">Finalizar e Ver Erros</button>
+        </div>
+    </div>
+
+    <div id="result-area" style="display:none; text-align:center;">
+        <h2>Resultado: <span id="final-score">0</span> / 20</h2>
+        <button onclick="location.reload()" style="background: var(--primary-color); color:white;">Refazer Quizz</button>
+        
+        <div id="review-section">
+            <h3>Revisão de Erros</h3>
+            <div id="errors-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "Qual o objetivo principal da Segurança da Informação segundo a ISO 27002?", a: "b", options: { a: "Automatizar processos", b: "Garantir continuidade do negócio e minimizar danos", c: "Eliminar todos os riscos", d: "Focar apenas em tecnologia", e: "Proteger apenas hardware" }},
+        { q: "Quais as 5 funções do NIST (2020)?", a: "b", options: { a: "Planejar, Executar, Verificar, Agir, Monitorar", b: "Identificação, Proteção, Detecção, Resposta, Recuperação", c: "Firewall, Antivírus, Backup, Cripto, Biometria", d: "CID, Autenticidade, Legalidade", e: "Prevenir, Investigar, Punir, Auditar, Relatar" }},
+        { q: "Por que nada é 100% seguro?", a: "c", options: { a: "Custo alto", b: "Leis mudam", c: "Dinamismo dos riscos e vulnerabilidades", d: "Usuários esquecem senhas", e: "Falta de profissionais" }},
+        { q: "Além da tecnologia, quais pontos sofrem ataques?", a: "c", options: { a: "Hardware e Software", b: "Clientes e Fornecedores", c: "Pessoas e Processos", d: "Redes Sociais e E-mail", e: "Backups e Bases de Dados" }},
+        { q: "O princípio da Confidencialidade garante que:", a: "c", options: { a: "Acesso total a todos", b: "Dados não mudem", c: "Acesso apenas a autorizados", d: "Identidade confirmada", e: "Sistema nunca caia" }},
+        { q: "O que garante acessibilidade quando necessária?", a: "c", options: { a: "Integridade", b: "Autenticidade", c: "Disponibilidade", d: "Irretratabilidade", e: "Confidencialidade" }},
+        { q: "Garantia de que o dado não foi modificado:", a: "b", options: { a: "Disponibilidade", b: "Integridade", c: "Legalidade", d: "Auditoria", e: "Autenticidade" }},
+        { q: "O conceito de Não-Repúdio serve para:", a: "a", options: { a: "Impedir que autor negue a autoria", b: "Bloquear usuários", c: "Criptografar Wi-Fi", d: "Backup automático", e: "Garantia de fábrica" }},
+        { q: "O ataque DoS compromete qual pilar?", a: "c", options: { a: "Confidencialidade", b: "Integridade", c: "Disponibilidade", d: "Autenticidade", e: "Não-Repúdio" }},
+        { q: "Sobre DDoS, é correto afirmar:", a: "b", options: { a: "Um só PC ataca", b: "Usa botnets para ataque coordenado", c: "Rouba senhas por e-mail", d: "É uma técnica de criptografia", e: "Ocorre por superaquecimento" }},
+        { q: "A DMZ consiste em:", a: "c", options: { a: "Desativar firewalls", b: "Rede só para redes sociais", c: "Proteção entre internet e rede interna para serviços públicos", d: "Rede sem cabos", e: "Criptografar HD" }},
+        { q: "A IA na segurança de rede serve para:", a: "b", options: { a: "Substituir humanos", b: "Detectar comportamentos anómalos", c: "Criar senhas impossíveis", d: "Gastar mais energia", e: "Impedir uso de telemóveis" }},
+        { q: "Definição de Criptografia:", a: "b", options: { a: "Deletar ficheiros", b: "Estudo de técnicas de segurança em transações", c: "Impedir roubo físico", d: "Vírus de resgate", e: "Organizar cabos" }},
+        { q: "Tecnologia fundamental para integridade distribuída:", a: "c", options: { a: "Bluetooth", b: "Dial-up", c: "Blockchain", d: "Infravermelho", e: "Fax" }},
+        { q: "O que representa um Ativo?", a: "a", options: { a: "Qualquer coisa com valor para a organização", b: "Dinheiro em caixa", c: "Software antivírus apenas", d: "Manuais técnicos", e: "Conta de luz" }},
+        { q: "Agente de Ameaça é:", a: "c", options: { a: "O Firewall", b: "Ponto fraco do sistema", c: "Quem explora a vulnerabilidade", d: "Backup em nuvem", e: "A legislação" }},
+        { q: "Um incidente ocorre quando:", a: "b", options: { a: "Compra-se um servidor", b: "Ameaça explora vulnerabilidade num ativo", c: "Usuário muda senha", d: "Sistema atualiza", e: "A política é lida" }},
+        { q: "Cálculo do Risco:", a: "c", options: { a: "Hardware x Software", b: "Custo x Tempo", c: "Probabilidade x Impacto", d: "Usuários x Velocidade", e: "Vulnerabilidade x Disco" }},
+        { q: "Por que a Informação é um ativo especial?", a: "b", options: { a: "Não pode ser copiada", b: "Possui valor e precisa de proteção", c: "Só existe em papel", d: "Nunca muda", e: "É dever do governo" }},
+        { q: "O que define Técnica de Ataque?", a: "c", options: { a: "Manual de TI", b: "Ética da internet", c: "Padrões/Métodos para atingir um alvo", d: "Configuração de fábrica", e: "Recuperação de ficheiros" }}
+    ];
+
+    let currentIdx = 0;
+
+    // Gerar HTML das perguntas
+    const container = document.getElementById('questions-container');
+    questions.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = `question-block ${i === 0 ? 'active' : ''}`;
+        div.innerHTML = `<h3>${i+1}. ${item.q}</h3><ul class="options">` + 
+            Object.entries(item.options).map(([k, v]) => 
+                `<li><label><input type="radio" name="q${i}" value="${k}"> ${k.toUpperCase()}) ${v}</label></li>`
+            ).join('') + `</ul>`;
+        container.appendChild(div);
+    });
+
+    function changeQuestion(step) {
+        const blocks = document.querySelectorAll('.question-block');
+        blocks[currentIdx].classList.remove('active');
+        currentIdx += step;
+        blocks[currentIdx].classList.add('active');
+        
+        document.getElementById('prev-btn').disabled = currentIdx === 0;
+        document.getElementById('next-btn').style.display = currentIdx === questions.length - 1 ? 'none' : 'inline-block';
+        document.getElementById('submit-btn').style.display = currentIdx === questions.length - 1 ? 'inline-block' : 'none';
+    }
+
+    function finishQuiz() {
+        let score = 0;
+        const errorsList = document.getElementById('errors-list');
+        errorsList.innerHTML = ""; 
+
+        questions.forEach((item, i) => {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            const userVal = selected ? selected.value : "Não respondida";
+            
+            if (userVal === item.a) {
+                score++;
+            } else {
+                // Adicionar aos erros
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-item';
+                errorDiv.innerHTML = `
+                    <p class="error-title">Questão ${i+1}: ${item.q}</p>
+                    <p>Sua resposta: <span class="user-ans">${userVal.toUpperCase()}) ${item.options[userVal] || "Em branco"}</span></p>
+                    <p>Resposta correta: <span class="correct-ans">${item.a.toUpperCase()}) ${item.options[item.a]}</span></p>
+                `;
+                errorsList.appendChild(errorDiv);
+            }
+        });
+
+        document.getElementById('quiz-area').style.display = 'none';
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('final-score').innerText = score;
+        
+        if (score < 20) {
+            document.getElementById('review-section').style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
